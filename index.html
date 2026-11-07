@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grid Defender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+  --bg:#cdd1de; --panel:#e8eaf2; --tile:#f3f4f9; --tile2:#ffffff;
+  --ink:#1b1d33; --muted:#575c7a; --line:#9ca1bb; --grid:#dfe2ec;
+  --s:#1b1d33; --e:#9c5f00; --i:#cf1f3e; --r:#11804e; --off:#a2a6b9; --iso:#2457d6;
+  --accent:#5b34d6; --shadow:#1b1d33; --overlay:rgba(27,29,51,.6);
+  --night:#0b0c1f; --nightink:#eceefa;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0c0d1d; --panel:#15172d; --tile:#111228; --tile2:#1c1e3b;
+    --ink:#eceefa; --muted:#9296ba; --line:#3e426d; --grid:#191b36;
+    --s:#eceefa; --e:#ffc23d; --i:#ff4d66; --r:#3fdc8c; --off:#4e5277; --iso:#66a3ff;
+    --accent:#a98bff; --shadow:#03030b; --overlay:rgba(3,3,11,.75);
+    --night:#03030b; --nightink:#eceefa;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0c0d1d; --panel:#15172d; --tile:#111228; --tile2:#1c1e3b;
+  --ink:#eceefa; --muted:#9296ba; --line:#3e426d; --grid:#191b36;
+  --s:#eceefa; --e:#ffc23d; --i:#ff4d66; --r:#3fdc8c; --off:#4e5277; --iso:#66a3ff;
+  --accent:#a98bff; --shadow:#03030b; --overlay:rgba(3,3,11,.75);
+  --night:#03030b; --nightink:#eceefa;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'VT323','Courier New',Courier,monospace;font-size:20px;line-height:1.25}
+.px{font-family:'Press Start 2P','Courier New',Courier,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 32px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+h1{font-family:'Press Start 2P','Courier New',monospace;font-size:clamp(17px,3vw,26px);line-height:1.2;margin:0;letter-spacing:1px;text-shadow:3px 3px 0 var(--accent)}
+.tagline{color:var(--muted);margin-top:8px;font-size:19px}
+.tools{display:flex;gap:8px}
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media (max-width:640px){.hud{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border:2px solid var(--ink);background:var(--panel);padding:8px 10px 10px;box-shadow:3px 3px 0 var(--shadow)}
+.stat .lbl{color:var(--muted);font-size:17px}
+.stat .val{font-family:'Press Start 2P',monospace;font-size:13px;margin:4px 0 8px;display:block}
+.bar{height:8px;border:2px solid var(--ink);background:var(--tile)}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s steps(6)}
+.game{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.game{grid-template-columns:1fr}}
+.screen{position:relative;border:3px solid var(--ink);background:var(--tile);box-shadow:5px 5px 0 var(--shadow)}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.07) 0 1px,transparent 1px 3px)}
+canvas{display:block;width:100%;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:manipulation}
+#map{cursor:default}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:17px;color:var(--muted);padding:12px 2px 0}
+.legend i{display:inline-block;width:12px;height:12px;border:2px solid;vertical-align:-1px;margin-right:6px}
+.chartwrap{margin-top:18px}
+h2{font-family:'Press Start 2P',monospace;font-size:10px;line-height:1.5;margin:0 0 10px}
+.chartkey{display:flex;flex-wrap:wrap;gap:2px 16px;font-size:17px;color:var(--muted);padding:8px 2px 0}
+.chartkey b{display:inline-block;width:14px;height:4px;vertical-align:4px;margin-right:6px}
+.panel{display:flex;flex-direction:column;gap:16px}
+.box{border:2px solid var(--ink);background:var(--panel);padding:14px;box-shadow:3px 3px 0 var(--shadow)}
+.sel{display:flex;gap:12px;align-items:flex-start;min-height:84px}
+#selSprite{width:48px;height:48px;flex:none;border:2px solid var(--ink);background:var(--tile2)}
+.sel .nm{font-size:22px;line-height:1.1}
+.sel .meta{color:var(--muted);font-size:17px}
+.sel .st{font-size:19px;margin-top:2px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+button{font-family:'Press Start 2P','Courier New',monospace;font-size:9px;line-height:1.6;color:var(--ink);background:var(--tile2);border:2px solid var(--ink);box-shadow:3px 3px 0 var(--shadow);padding:9px 8px;cursor:pointer;text-align:center}
+button:hover:not(:disabled){background:var(--grid)}
+button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+button:disabled{opacity:.38;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button .k{color:var(--accent)}
+button .c{display:block;font-family:'VT323',monospace;font-size:17px;color:var(--muted);margin-top:2px}
+.help{font-size:17px;color:var(--muted);margin:12px 0 0;line-height:1.3}
+.endday{font-size:12px;padding:16px 10px;background:var(--accent);color:var(--tile2)}
+.endday:hover:not(:disabled){background:var(--accent);filter:brightness(1.12)}
+.endday small{display:block;font-family:'VT323',monospace;font-size:17px;opacity:.85;margin-top:4px}
+.upg{display:grid;gap:8px}
+.upg button{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;text-align:left}
+.upg button.own{border-style:dashed}
+.upg .d{display:block;font-family:'VT323',monospace;font-size:17px;color:var(--muted);margin-top:3px;line-height:1.15}
+.model{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:19px}
+.model .hot{color:var(--i)} .model .cool{color:var(--r)}
+#log{list-style:none;margin:0;padding:0;font-size:17px;line-height:1.2;max-height:260px;overflow:auto}
+#log li{border-bottom:1px dotted var(--line);padding:4px 0}
+.c-i{color:var(--i)} .c-e{color:var(--e)} .c-r{color:var(--r)} .c-x{color:var(--accent)} .c-m{color:var(--muted)}
+.modal{position:fixed;inset:0;background:var(--overlay);display:none;align-items:center;justify-content:center;padding:calc(14px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px));z-index:30}
+.modal.open{display:flex}
+.win{background:var(--panel);border:3px solid var(--ink);box-shadow:7px 7px 0 var(--shadow);width:100%;max-width:600px;max-height:100%;overflow:auto}
+.win.wide{max-width:900px}
+.winbar{display:flex;justify-content:space-between;gap:10px;background:var(--ink);color:var(--panel);font-family:'Press Start 2P',monospace;font-size:9px;padding:8px 12px;position:sticky;top:0}
+.winbody{padding:20px 22px 22px}
+.winbody h3{font-family:'Press Start 2P',monospace;font-size:15px;line-height:1.5;margin:0 0 12px}
+.winbody p{margin:0 0 12px}
+.lead{color:var(--muted)}
+.logo{font-family:'Press Start 2P',monospace;font-size:clamp(22px,5vw,34px);line-height:1.2;text-align:center;margin:8px 0 6px;text-shadow:4px 4px 0 var(--accent)}
+.center{text-align:center}
+.states{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}
+@media (max-width:520px){.states{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.states div{border:2px solid;padding:8px;font-size:17px;line-height:1.15}
+.states b{display:block;font-family:'Press Start 2P',monospace;font-size:8px;margin-bottom:6px;font-weight:normal}
+.actions{display:flex;justify-content:center;gap:10px;margin-top:16px}
+.primary{font-size:11px;padding:13px 20px;background:var(--accent);color:var(--tile2)}
+.primary:hover:not(:disabled){background:var(--accent);filter:brightness(1.12)}
+.big{font-family:'Press Start 2P',monospace;font-size:52px;line-height:1.1;text-align:center;margin:6px 0 10px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 18px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats div{border:2px solid var(--ink);padding:8px;font-size:17px;color:var(--muted)}
+.stats b{display:block;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--ink);font-weight:normal;margin-top:6px}
+.tag{display:inline-block;border:2px solid currentColor;padding:3px 8px;margin-bottom:12px;font-family:'Press Start 2P',monospace;font-size:8px}
+.mails{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+@media (max-width:760px){.mails{grid-template-columns:1fr}}
+.mail{border:2px solid var(--ink);background:var(--tile2);padding:12px;display:flex;flex-direction:column;gap:6px;text-align:left;position:relative;box-shadow:3px 3px 0 var(--shadow)}
+.mail .who{font-size:20px;line-height:1.1}
+.mail .addr{font-size:17px;color:var(--muted);word-break:break-all}
+.mail .subj{border-top:1px dotted var(--line);padding-top:6px;font-size:20px;line-height:1.1}
+.mail p{margin:0;font-size:18px;line-height:1.2;color:var(--ink)}
+.chip{border:1px dashed var(--line);padding:3px 6px;font-size:16px;color:var(--muted);word-break:break-all}
+.mail .report{margin-top:auto}
+.stamp{font-family:'Press Start 2P',monospace;font-size:9px;min-height:1px}
+.mail.is-phish{border-color:var(--i);box-shadow:4px 4px 0 var(--i)}
+.mail.is-phish .stamp{color:var(--i)}
+.mail.is-legit .stamp{color:var(--r)}
+.mail.is-legit{opacity:.8}
+.mail.picked{outline:3px dashed var(--accent);outline-offset:3px}
+.result{border:2px solid var(--ink);padding:12px 14px;margin-top:16px;text-align:left;background:var(--tile)}
+.result.good{border-color:var(--r)} .result.bad{border-color:var(--i)}
+.result ul{margin:8px 0 0;padding-left:20px}
+.result li{margin-bottom:4px}
+.blink{animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+@media (prefers-reduced-motion: reduce){.blink{animation:none}.bar i{transition:none}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>GRID DEFENDER</h1>
+      <div class="tagline">Keep Riverton’s power, water, hospitals and more running for 60 days.</div>
+    </div>
+    <div class="tools">
+      <button id="bSound" aria-pressed="true">SOUND ON</button>
+      <button id="bHelp">HOW TO PLAY</button>
+    </div>
+  </header>
+
+  <div class="hud">
+    <div class="stat"><div class="lbl">Day</div><span class="val" id="hDay">0/60</span><div class="bar"><i id="barDay"></i></div></div>
+    <div class="stat"><div class="lbl">Budget</div><span class="val" id="hBudget">$0</span><div class="bar"><i id="barBudget" style="background:var(--e)"></i></div></div>
+    <div class="stat"><div class="lbl">City uptime</div><span class="val" id="hUp">100%</span><div class="bar"><i id="barUp" style="background:var(--r)"></i></div></div>
+    <div class="stat"><div class="lbl">Phishing caught</div><span class="val" id="hPhish">0/0</span><div class="bar"><i id="barPhish" style="background:var(--iso)"></i></div></div>
+  </div>
+
+  <div class="game">
+    <div>
+      <div class="screen"><canvas id="map" aria-label="Riverton network map. Select a system to defend it."></canvas></div>
+      <div class="legend">
+        <span><i style="border-color:var(--s)"></i>Vulnerable (S)</span>
+        <span><i style="border-color:var(--e)"></i>Intruder found (E)</span>
+        <span><i style="border-color:var(--i);background:var(--i)"></i>Compromised (I)</span>
+        <span><i style="border-color:var(--r)"></i>Secured (R)</span>
+        <span><i style="border-color:var(--iso);border-width:3px"></i>Isolated</span>
+        <span><i style="border-color:var(--off)"></i>Offline</span>
+      </div>
+      <div class="chartwrap">
+        <h2 id="chartTitle">OUTBREAK CURVE: WHAT YOU CAN SEE</h2>
+        <div class="screen"><canvas id="chart" aria-label="Chart of system states over time"></canvas></div>
+        <div class="chartkey" id="chartKey"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="box">
+        <h2>SELECTED SYSTEM</h2>
+        <div class="sel"><canvas id="selSprite" width="40" height="40"></canvas><div id="selInfo"></div></div>
+        <div class="btns">
+          <button id="bPatch"><span class="k">P</span>ATCH $5<span class="c">Vulnerable → secured</span></button>
+          <button id="bRestore"><span class="k">R</span>ESTORE $10<span class="c">Rebuild a hacked system</span></button>
+          <button id="bScan"><span class="k">S</span>CAN $4<span class="c">Find hidden intruders</span></button>
+          <button id="bIso"><span class="k">I</span>SOLATE $2<span class="c">Unplug for 4 days</span></button>
+        </div>
+      </div>
+
+      <button id="bNext" class="endday">END DAY 1<small>Press N</small></button>
+
+      <div class="box">
+        <h2>UPGRADES</h2>
+        <div class="upg" id="upg"></div>
+      </div>
+
+      <div class="box">
+        <h2>THE MODEL RIGHT NOW</h2>
+        <div class="model">
+          <span>β spread</span><span id="mBeta"></span>
+          <span>γ recovery</span><span id="mGamma"></span>
+          <span>R₀ = β·k̄/γ</span><span id="mR0"></span>
+        </div>
+        <p class="help">R₀ is how many systems one breach infects if nobody acts. Push it below 1 and outbreaks fizzle out.</p>
+      </div>
+
+      <div class="box">
+        <h2>INCIDENT LOG</h2>
+        <ul id="log" aria-live="polite"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="win" id="win"></div></div>
+
+<script>
+(function(){
+const W=320,H=200,SC=3,DAYS=60,N=18,CW=320,CH=72;
+const $=id=>document.getElementById(id);
+const cv=$('map'),ctx=cv.getContext('2d');cv.width=W*SC;cv.height=H*SC;
+const ch=$('chart'),cc=ch.getContext('2d');ch.width=CW*SC;ch.height=CH*SC;
+const sp=$('selSprite'),spx=sp.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const now=()=>performance.now();
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+const P={};
+function readPal(){const cs=getComputedStyle(document.documentElement);
+  ['bg','tile','tile2','ink','muted','line','grid','s','e','i','r','off','iso','accent','night','nightink'].forEach(k=>P[k]=cs.getPropertyValue('--'+k).trim());}
+readPal();
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{readPal();drawChart();drawSel();});}catch(e){}
+
+/* sound */
+let AC=null,soundOn=true;
+function audio(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();}if(AC.state==='suspended')AC.resume().catch(()=>{});return AC;}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{try{const a=audio();if(a&&!a._unlocked){const b=a.createBuffer(1,1,22050),s=a.createBufferSource();s.buffer=b;s.connect(a.destination);s.start(0);a._unlocked=true;}}catch(e){}},{capture:true,passive:true}));
+function beep(freqs,dur,type,vol){
+  if(!soundOn)return;
+  try{if(!audio())return;const t=AC.currentTime+0.01;
+    freqs.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.value=f;
+      g.gain.setValueAtTime((vol||0.05)*2.2,t+i*dur);g.gain.exponentialRampToValueAtTime(0.0001,t+(i+1)*dur);
+      o.connect(g);g.connect(AC.destination);o.start(t+i*dur);o.stop(t+(i+1)*dur+0.02);});}catch(e){}
+}
+const SFX={
+  select:()=>beep([880],.035),
+  good:()=>beep([523,659,784,1047],.06),
+  bad:()=>beep([196,147],.16,'sawtooth',.035),
+  alarm:()=>beep([880,660,880,660],.09),
+  coin:()=>beep([988,1319],.06),
+  night:()=>beep([392,330,262,196],.11,'triangle',.06),
+  mail:()=>beep([660,880],.07,'triangle',.05),
+  deny:()=>beep([120],.08,'square',.03)
+};
+
+/* sprites */
+const SPR={
+ power:["....###.","...###..","..###...",".######.","...###..","..###...",".###....",".##....."],
+ water:["...##...","...##...","..####..",".######.",".######.","########",".######.","..####.."],
+ hospital:["..####..","..####..","########","########","########","########","..####..","..####.."],
+ telecom:["#..##..#",".#.##.#.","...##...","...##...","..####..","..#..#..",".#....#.","#......#"],
+ bank:["...##...",".######.","########",".#.##.#.",".#.##.#.",".#.##.#.","########","########"],
+ transit:[".######.","#......#","#.#..#.#","#......#","########","#.####.#",".##..##.","........"]
+};
+const GLY={'!':[".#.",".#.",".#.","...",".#."],'?':["##.","..#",".#.","...",".#."],'v':["...","..#","..#","#.#",".#."],'L':[".#.","#.#","###","###","###"],'z':["###","..#",".#.","#..","###"]};
+function bitmap(c,rows,x,y,s,col){c.fillStyle=col;for(let r=0;r<rows.length;r++)for(let k=0;k<rows[r].length;k++)if(rows[r][k]==='#')c.fillRect(x+k*s,y+r*s,s,s);}
+
+/* city */
+const SECT={
+ power:{label:'POWER',cx:160,cy:54,deps:[],names:['Power Plant','Substation','Grid Control']},
+ water:{label:'WATER',cx:56,cy:54,deps:['power'],names:['Pump Station','Treatment Plant','Reservoir Control']},
+ hospital:{label:'HOSPITAL',cx:264,cy:54,deps:['power','telecom'],names:['Emergency Room','Patient Records','Pharmacy']},
+ bank:{label:'BANKING',cx:56,cy:144,deps:['power','telecom'],names:['ATM Network','Payments','Trading Desk']},
+ telecom:{label:'TELECOM',cx:160,cy:144,deps:['power'],names:['Cell Towers','Data Center','Fiber Hub']},
+ transit:{label:'TRANSIT',cx:264,cy:144,deps:['power','telecom'],names:['Rail Signals','Ticketing','Bus Depot']}
+};
+const ORDER=['power','telecom','water','hospital','bank','transit'];
+const OFF=[[-20,12],[20,12],[0,-14]];
+const CROSS=[['power',0,'water',1],['power',1,'hospital',0],['power',0,'telecom',2],['telecom',0,'bank',1],['telecom',1,'transit',0],['telecom',2,'hospital',0],['water',0,'bank',2]];
+const ROLES={power:['a plant operator','a grid engineer'],water:['a pump technician','a lab analyst'],hospital:['a nurse','a pharmacy clerk','a records clerk'],bank:['a bank teller','a payments analyst'],telecom:['a network technician','a call-center agent'],transit:['a dispatcher','a ticketing clerk']};
+const BAITS=['a fake password-reset email','a fake delivery notice','a “shared file” link','a fake invoice','a gift-card request from a fake boss','a fake benefits sign-up page'];
+
+/* phishing content */
+const PHISH=[
+ {name:'Riverton IT Helpdesk',addr:'helpdesk@riverton-gov.support',subj:'ACTION REQUIRED: Password expires in 2 hours',body:'Your network password expires today. To keep your current password, verify your account now.',link:'riverton-gov.support/verify',bait:'a fake password-expiry email',flags:['The city’s real domain is riverton.gov. “riverton-gov.support” is a lookalike.','Extreme urgency (“2 hours”) is a pressure tactic.','Real IT teams never ask you to confirm your password through a link.']},
+ {name:'Dana Ortiz (Director)',addr:'dana.ortiz.director@gmail.com',subj:'Quick favor',body:'Are you at your desk? I need you to buy 5 gift cards for a client today. Keep this between us. I’ll pay you back.',bait:'a gift-card request from a fake boss',flags:['A director using a personal Gmail address for work requests.','Gift cards are almost impossible to trace, which is why scammers want them.','Asking for secrecy is a classic manipulation tactic. Verify by phone.']},
+ {name:'Payroll',addr:'payroll@riverton.gov.payroll-update.com',subj:'Update your direct deposit before Friday',body:'We are moving to a new payroll system. Re-enter your bank details by Friday or your paycheck may be delayed.',link:'riverton.gov.payroll-update.com/form',bait:'a fake payroll update',flags:['Read domains from the right. This one is really “payroll-update.com”.','Threatening your paycheck creates fear and urgency.','Bank detail changes should go through the staff portal, never an emailed form.']},
+ {name:'ParcelPoint Delivery',addr:'notice@parcelpoint-tracking.info',subj:'Delivery failed: package on hold',body:'We could not deliver your package. Open the attached label to reschedule within 24 hours.',att:'Delivery_Label.html',bait:'a fake delivery notice',flags:['Were you expecting a package at work? Unexpected notices are common bait.','An .html attachment can open a fake login page.','A random tracking domain, not a carrier you recognize.']},
+ {name:'GridWerks Vendor Support',addr:'support@gridwerks-updates.net',subj:'Urgent firmware patch for your control system',body:'A critical flaw affects your controllers. Run the attached installer on all operator stations today.',att:'patch_installer.zip',bait:'a fake vendor patch',flags:['Unsolicited software sent by email. Real patches come through known vendor channels.','Asking you to run it on every station would spread malware fast.','Always confirm with the vendor using contact details you already have.']},
+ {name:'Riverton HR',addr:'hr@riverton.gov',subj:'Open enrollment closes tonight',body:'Confirm your health benefits before midnight or you will lose coverage for the year.',link:'hr-benefits-riverton.com/login',bait:'a fake benefits sign-up page',flags:['The sender looks real, but the link goes somewhere else. Senders can be spoofed.','Always check where a link really goes before clicking.','“Tonight or you lose coverage” is manufactured urgency.']},
+ {name:'Office of the Mayor',addr:'mayor@rivert0n.gov',subj:'Confidential: proposed budget cuts',body:'Please review the attached plan before tomorrow’s meeting. Do not forward.',att:'Budget_Cuts.docm',bait:'a fake memo from the mayor',flags:['Look closely: “rivert0n” uses a zero instead of the letter o.','A .docm file can contain macros that run malicious code.','Curiosity bait: confidential news you can’t resist opening.']},
+ {name:'FileShare Cloud',addr:'no-reply@files-share.cloud',subj:'Marcus shared “Staff Salaries.xlsx” with you',body:'You have been given access to a document. Sign in with your work email and password to view it.',link:'files-share.cloud/signin',bait:'a “shared file” link',flags:['A generic sharing service you don’t use at work.','Salary data is curiosity bait designed to make you click.','Signing in on an unfamiliar page hands over your password.']}
+];
+const LEGIT=[
+ {name:'Riverton IT Helpdesk',addr:'helpdesk@riverton.gov',subj:'Scheduled maintenance Saturday 2–4 AM',body:'Email may be unavailable during this window. No action is needed from you.'},
+ {name:'Priya Shah',addr:'p.shah@riverton.gov',subj:'Notes from Tuesday’s safety meeting',body:'Here are the notes we talked about. Let me know if I missed anything.',att:'Safety_Meeting_Notes.pdf'},
+ {name:'Riverton HR',addr:'hr@riverton.gov',subj:'Reminder: annual training due this month',body:'Log in through the staff portal as usual and find it under Learning. No links in this email.'},
+ {name:'Facilities',addr:'facilities@riverton.gov',subj:'Parking lot B repaving next week',body:'Please use lot C Monday through Wednesday. Thanks for your patience.'},
+ {name:'Water Ops Team',addr:'waterops@riverton.gov',subj:'Shift swap confirmed for Thursday',body:'Your swap with Luis is approved. Your new start time is 7 AM.'},
+ {name:'Riverton News',addr:'news@riverton.gov',subj:'This week: library reopening',body:'The main library reopens Saturday with extended hours. Stop by and say hello.',link:'riverton.gov/news'},
+ {name:'Tom Becker',addr:'t.becker@riverton.gov',subj:'Lunch order for Friday?',body:'Ordering tacos for the team. Reply with what you want by Thursday.'},
+ {name:'Payroll',addr:'payroll@riverton.gov',subj:'Your pay stub is available',body:'View it in the staff portal. Payroll will never ask for your password by email.'},
+ {name:'Security Team',addr:'security@riverton.gov',subj:'Thanks for reporting that email',body:'The message you forwarded yesterday was phishing. Nice catch, and keep reporting.'}
+];
+const INBOX={3:1,8:3,14:1,26:1,38:1,52:1};
+
+/* build */
+function build(){
+  const nodes=[],idx={};
+  for(const s of ORDER)SECT[s].names.forEach((nm,k)=>{idx[s+k]=nodes.length;
+    nodes.push({id:nodes.length,sector:s,k,name:nm,x:SECT[s].cx+OFF[k][0],y:SECT[s].cy+OFF[k][1],state:'S',inc:0,iso:0,detected:false,fakeR:false,caused:0,ever:false,offline:false,cascade:false,origin:'',nb:[]});});
+  const edges=[];
+  for(const s of ORDER)edges.push([idx[s+0],idx[s+1],false],[idx[s+1],idx[s+2],false],[idx[s+0],idx[s+2],false]);
+  for(const [a,ka,b,kb] of CROSS)edges.push([idx[a+ka],idx[b+kb],true]);
+  for(const e of edges){nodes[e[0]].nb.push({to:e[1],cross:e[2]});nodes[e[1]].nb.push({to:e[0],cross:e[2]});}
+  return {nodes,edges};
+}
+
+/* params */
+const COST={patch:5,scan:4,iso:2};
+const UPG={
+ training:{label:'STAFF TRAINING',cost:25,desc:'Fewer people click phishing links each day'},
+ mfa:{label:'MULTI-FACTOR LOGIN',cost:30,desc:'Half of stolen passwords stop working'},
+ segment:{label:'SEGMENTATION',cost:35,desc:'Firewalls lower β, most of all between sectors'},
+ soc:{label:'SOC MONITORING',cost:40,desc:'Raises γ and spots hidden intruders'},
+ backup:{label:'OFFLINE BACKUPS',cost:25,desc:'Halves the cost of restoring'}
+};
+function beta(cross){let b=0.09;if(G.wormDays>0)b*=2;if(G.upg.segment)b*=cross?0.3:0.7;return b;}
+function gamma(){return G.upg.soc?0.10:0.02;}
+function phishRate(){return G.upg.training?0.03:0.08;}
+function restoreCost(){return G.upg.backup?5:10;}
+function r0(){return (2*(18*beta(false)+7*beta(true))/N)/gamma();}
+
+const EVENTS={
+ 8:{title:'PHISHING WAVE',text:'A wave of convincing phishing emails is hitting inboxes across Riverton.',lesson:'Staff are forwarding suspicious messages to you. Catch the fakes before anyone clicks. Every miss gives attackers a hidden foothold.',fn:()=>{}},
+ 20:{title:'ZERO-DAY DISCLOSED',text:'Researchers reveal a brand-new flaw in software many of your patched systems run.',lesson:'Half of your secured systems are vulnerable again. In cyber, protection fades as new flaws appear. Epidemiologists call this an SIRS model.',fn:()=>{const rs=shuffle(G.nodes.filter(n=>n.state==='R'));rs.slice(0,Math.ceil(rs.length/2)).forEach(n=>{n.state='S';});}},
+ 32:{title:'SUPPLY-CHAIN HACK',text:'A trusted vendor’s software update was secretly poisoned, and it’s already installed.',lesson:'Attackers rode in through a trusted update, so patching didn’t protect anyone. Even secured systems may hide intruders now. Time to scan.',fn:()=>{seedHidden(2,true,['telecom','bank','hospital']).forEach(n=>n.origin='a poisoned vendor software update');}},
+ 45:{title:'RANSOMWARE WORM',text:'A self-spreading ransomware worm is tearing across the internet.',lesson:'For the next 6 days the spread rate β doubles. Isolation and segmentation cut the paths a worm can travel.',fn:()=>{G.wormDays=6;}}
+};
+
+/* state */
+let G=null,modalOpen=false,busy=false;const Q=[];
+function newGame(){
+  const {nodes,edges}=build();
+  G={day:0,budget:40,nodes,edges,upg:{training:false,mfa:false,segment:false,soc:false,backup:false},hist:[],log:[],sel:null,hover:null,ended:false,uptimeSum:0,peakI:0,wasted:0,hiddenSeeds:0,wormDays:0,down:{},fx:[],floats:[],shake:0,anim:null,phishSeen:0,phishCaught:0,mfaBlocks:0,phishOrder:shuffle(PHISH.map((_,i)=>i)),phishPtr:0};
+  plantFoothold(pick(BAITS));plantFoothold(pick(BAITS));
+  computeOffline();recordHist();
+  addLog('Day 0. All systems report normal. For now.','m');
+}
+function seedHidden(n,allowR=false,sectors=null){
+  const pool=shuffle(G.nodes.filter(x=>(x.state==='S'||(allowR&&x.state==='R'))&&(!sectors||sectors.includes(x.sector))));
+  const out=pool.slice(0,n);
+  out.forEach(x=>{x.fakeR=x.state==='R';x.state='E';x.inc=2+rnd(3);x.detected=false;G.hiddenSeeds++;});
+  return out;
+}
+function plantFoothold(bait){
+  if(G.upg.mfa&&Math.random()<0.5){G.mfaBlocks++;addLog('Multi-factor login blocked an attacker using a stolen password','r');return 'blocked';}
+  const n=seedHidden(1)[0];if(!n)return 'none';
+  n.origin=`${pick(ROLES[n.sector])} clicked ${bait}`;return 'planted';
+}
+function shown(n){if(n.state==='E')return n.detected?'E':(n.fakeR?'R':'S');return n.state;}
+function computeOffline(){
+  const down={};
+  for(const s of ORDER){
+    const depDown=SECT[s].deps.some(d=>down[d]);let c=0;
+    for(const n of G.nodes)if(n.sector===s){n.cascade=depDown&&n.state!=='I'&&n.iso===0;n.offline=n.state==='I'||n.iso>0||depDown;if(n.offline)c++;}
+    down[s]=c>=2;
+  }
+  G.down=down;
+}
+function counts(){const t={S:0,E:0,I:0,R:0},v={S:0,E:0,I:0,R:0};for(const n of G.nodes){t[n.state]++;v[shown(n)]++;}return {t,v,online:G.nodes.filter(n=>!n.offline).length};}
+function recordHist(){const c=counts();G.hist.push(c);G.peakI=Math.max(G.peakI,c.t.I);}
+function refreshHist(){const c=counts(),l=G.hist[G.hist.length-1];l.t=c.t;l.v=c.v;l.online=c.online;}
+function addLog(msg,cls){if(!G)return;G.log.unshift({msg:(G.day?`Day ${G.day}: `:'')+msg,cls});G.log.length=Math.min(G.log.length,14);}
+
+/* fx */
+function floatText(n,text,col){G.floats.push({x:n.x,y:n.y-16,text,col,t0:now()});}
+function burst(n,col,count){for(let i=0;i<(count||14);i++)G.fx.push({x:n.x,y:n.y,vx:(Math.random()-.5)*1.8,vy:(Math.random()-.5)*1.8-0.5,col,t0:now(),life:500+rnd(400)});}
+
+/* simulation */
+function tick(){
+  G.day++;
+  const ev=EVENTS[G.day],newE=[];
+  for(const n of G.nodes){
+    if(n.state!=='I'||n.iso>0)continue;
+    for(const e of n.nb){const m=G.nodes[e.to];
+      if(m.state==='S'&&m.iso===0&&!newE.includes(m)&&Math.random()<beta(e.cross)){newE.push(m);n.caused++;m.origin=`spread from ${n.name}`;}}
+  }
+  let hit=false;
+  for(const n of G.nodes){
+    if(n.state!=='E')continue;
+    n.inc--;
+    if(n.inc<=0){
+      n.state='I';n.ever=true;hit=true;
+      addLog(`${n.name} COMPROMISED! Source: ${n.origin||'unknown'}.${n.fakeR?' It was breached before you patched it.':''}`,'i');
+      n.detected=true;n.fakeR=false;burst(n,P.i,18);floatText(n,'HACKED!',P.i);
+    }else if(G.upg.soc&&!n.detected&&Math.random()<0.35){n.detected=true;n.fakeR=false;addLog(`SOC spotted an intruder in ${n.name}`,'e');floatText(n,'FOUND',P.e);}
+  }
+  for(const m of newE){m.state='E';m.inc=2+rnd(3);m.detected=false;m.fakeR=false;}
+  for(const n of G.nodes)if(n.state==='I'&&Math.random()<gamma()){n.state='R';n.detected=false;addLog(`${n.name} was cleaned up by its own IT team`,'r');burst(n,P.r,10);}
+  if(Math.random()<phishRate())plantFoothold(pick(BAITS));
+  for(const n of G.nodes)if(n.iso>0){n.iso--;if(n.iso===0)addLog(`${n.name} reconnected`,'m');}
+  if(G.wormDays>0)G.wormDays--;
+  if(ev)ev.fn();
+  computeOffline();
+  const online=G.nodes.filter(n=>!n.offline).length,inc=1+Math.floor(online/4);
+  G.budget+=inc;G.uptimeSum+=online;
+  addLog(`Night over. ${online}/${N} systems online, +$${inc} budget.`,'m');
+  recordHist();
+  if(hit){G.shake=now();setTimeout(()=>SFX.bad(),reduce?0:420);}
+  updateUI();drawChart();
+  if(ev)Q.push(()=>showAlert(ev));
+  if(INBOX[G.day]){const tot=INBOX[G.day];for(let r=0;r<tot;r++)Q.push(()=>phishRound(r,tot));}
+  if(G.day>=DAYS)Q.push(endGame);
+}
+function endDay(){
+  if(busy||G.ended||modalOpen)return;
+  busy=true;G.sel=G.sel;SFX.night();
+  G.anim={t0:now(),dur:reduce?250:1100,ticked:false,day:G.day+1};
+  updateUI();
+}
+function runQueue(){if(modalOpen)return;const f=Q.shift();if(f)f();else{busy=false;updateUI();}}
+
+/* actions */
+function selNode(){return G.sel!=null?G.nodes[G.sel]:null;}
+const ready=()=>!busy&&!G.ended&&!modalOpen;
+function canPatch(n){return n&&ready()&&shown(n)==='S'&&G.budget>=COST.patch;}
+function canRestore(n){const s=n&&shown(n);return n&&ready()&&(s==='I'||s==='E')&&G.budget>=restoreCost();}
+function canScan(n){return n&&ready()&&G.budget>=COST.scan;}
+function canIso(n){return n&&ready()&&n.iso===0&&G.budget>=COST.iso;}
+function act(kind){
+  const n=selNode();if(!n||!ready())return;
+  if(kind==='patch'&&canPatch(n)){G.budget-=COST.patch;if(n.state==='E'){G.wasted++;n.fakeR=true;}else n.state='R';addLog(`Patched ${n.name}`,'r');floatText(n,'-$'+COST.patch,P.e);burst(n,P.r,10);SFX.good();}
+  else if(kind==='restore'&&canRestore(n)){const c=restoreCost();G.budget-=c;n.state='R';n.detected=false;n.fakeR=false;n.inc=0;addLog(`Restored ${n.name} from a clean backup`,'r');floatText(n,'-$'+c,P.e);burst(n,P.r,16);SFX.good();}
+  else if(kind==='scan'&&canScan(n)){
+    G.budget-=COST.scan;let f=0;
+    for(const m of G.nodes)if(m.sector===n.sector&&m.state==='E'&&!m.detected){m.detected=true;m.fakeR=false;f++;floatText(m,'FOUND',P.e);burst(m,P.e,8);}
+    addLog(f?`Scanned ${SECT[n.sector].label}: ${f} hidden intruder${f>1?'s':''} found!`:`Scanned ${SECT[n.sector].label}: all clean`,f?'e':'m');
+    if(!f)floatText(n,'CLEAN',P.muted);f?SFX.alarm():SFX.coin();
+  }
+  else if(kind==='iso'&&canIso(n)){G.budget-=COST.iso;n.iso=4;addLog(`Isolated ${n.name} for 4 days`,'x');floatText(n,'UNPLUGGED',P.iso);SFX.select();}
+  else{SFX.deny();return;}
+  computeOffline();refreshHist();updateUI();drawChart();
+}
+function buy(k){if(!ready()||G.upg[k]||G.budget<UPG[k].cost){SFX.deny();return;}G.budget-=UPG[k].cost;G.upg[k]=true;addLog(`Bought ${UPG[k].label.toLowerCase()}`,'x');SFX.coin();updateUI();}
+
+/* map drawing */
+function dotted(x0,y0,x1,y1,col,gap){const st=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));ctx.fillStyle=col;for(let i=0;i<=st;i+=gap){const t=i/st;ctx.fillRect(Math.round(x0+(x1-x0)*t),Math.round(y0+(y1-y0)*t),1,1);}}
+function outline(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(x,y,w,1);ctx.fillRect(x,y+h-1,w,1);ctx.fillRect(x,y,1,h);ctx.fillRect(x+w-1,y,1,h);}
+function brackets(x,y,w,h,col){ctx.fillStyle=col;const l=5;
+  ctx.fillRect(x,y,l,1);ctx.fillRect(x,y,1,l);ctx.fillRect(x+w-l,y,l,1);ctx.fillRect(x+w-1,y,1,l);
+  ctx.fillRect(x,y+h-1,l,1);ctx.fillRect(x,y+h-l,1,l);ctx.fillRect(x+w-l,y+h-1,l,1);ctx.fillRect(x+w-1,y+h-l,1,l);}
+const FONT="8px 'Press Start 2P', monospace";
+function draw(t){
+  let sx=0,sy=0;if(G.shake&&t-G.shake<350&&!reduce&&!G.anim){sx=rnd(3)-1;sy=rnd(3)-1;}
+  ctx.setTransform(SC,0,0,SC,sx*SC,sy*SC);
+  ctx.fillStyle=P.tile;ctx.fillRect(-4,-4,W+8,H+8);
+  ctx.fillStyle=P.grid;for(let y=4;y<H;y+=8)for(let x=4;x<W;x+=8)ctx.fillRect(x,y,1,1);
+  for(const [a,b,cross] of G.edges){
+    const A=G.nodes[a],B=G.nodes[b],broken=A.iso>0||B.iso>0;
+    dotted(A.x,A.y,B.x,B.y,broken?P.off:P.line,broken?5:2);
+    if(cross&&G.upg.segment){const mx=Math.round((A.x+B.x)/2),my=Math.round((A.y+B.y)/2);ctx.fillStyle=P.accent;ctx.fillRect(mx-3,my-3,7,7);ctx.fillStyle=P.tile;ctx.fillRect(mx-2,my-1,5,1);ctx.fillRect(mx-2,my+1,5,1);}
+  }
+  for(const [a,b] of G.edges)for(const [s,d] of [[a,b],[b,a]]){
+    const S=G.nodes[s],D=G.nodes[d];if(S.state!=='I'||S.iso>0||D.iso>0)continue;
+    const p=reduce?0.5:((t/(G.wormDays>0?650:1300))+s*0.37)%1;
+    ctx.fillStyle=P.i;ctx.fillRect(Math.round(S.x+(D.x-S.x)*p)-1,Math.round(S.y+(D.y-S.y)*p)-1,3,3);
+  }
+  ctx.font=FONT;ctx.textAlign='center';ctx.textBaseline='top';
+  for(const s of ORDER){
+    const sc=SECT[s],down=G.down[s],txt=down?sc.label+' DOWN':sc.label,w=ctx.measureText(txt).width,ly=sc.cy+27;
+    ctx.fillStyle=P.tile;ctx.fillRect(Math.round(sc.cx-w/2-3),ly-2,Math.round(w+6),12);
+    if(down&&!reduce&&Math.floor(t/500)%2)continue;
+    ctx.fillStyle=down?P.i:P.muted;ctx.fillText(txt,sc.cx,ly);
+  }
+  for(const n of G.nodes)drawNode(n,t);
+  G.fx=G.fx.filter(f=>{const a=t-f.t0;if(a>f.life)return false;const k=a/16;ctx.globalAlpha=1-a/f.life;ctx.fillStyle=f.col;ctx.fillRect(Math.round(f.x+f.vx*k),Math.round(f.y+f.vy*k+0.012*k*k),2,2);return true;});
+  ctx.globalAlpha=1;
+  G.floats=G.floats.filter(f=>{const a=t-f.t0;if(a>1100)return false;ctx.globalAlpha=Math.min(1,(1100-a)/400);const y=Math.round(f.y-(reduce?0:a/90));const w=ctx.measureText(f.text).width;const x=Math.max(w/2+2,Math.min(W-w/2-2,f.x));ctx.fillStyle=P.tile;ctx.fillRect(Math.round(x-w/2-2),y-2,Math.round(w+4),12);ctx.fillStyle=f.col;ctx.fillText(f.text,x,y);return true;});
+  ctx.globalAlpha=1;
+  if(G.hover!=null&&G.hover!==G.sel&&!G.anim){const n=G.nodes[G.hover],w=ctx.measureText(n.name).width,x=Math.max(w/2+4,Math.min(W-w/2-4,n.x)),y=n.y-30;
+    ctx.fillStyle=P.ink;ctx.fillRect(Math.round(x-w/2-4),y-3,Math.round(w+8),14);ctx.fillStyle=P.tile;ctx.fillText(n.name,x,y);}
+  if(G.wormDays>0&&(reduce||Math.floor(t/400)%2)){ctx.fillStyle=P.i;ctx.fillText('WORM ACTIVE: SPREAD x2',W/2,4);}
+  ctx.fillStyle=P.line;ctx.fillRect(8,192,W-16,3);ctx.fillStyle=P.accent;ctx.fillRect(8,192,Math.round((W-16)*G.day/DAYS),3);
+  if(G.anim){
+    const p=Math.min(1,(t-G.anim.t0)/G.anim.dur),a=p<.5?p*2:(1-p)*2;
+    ctx.globalAlpha=Math.min(.92,a*1.1);ctx.fillStyle=P.night;ctx.fillRect(-4,-4,W+8,H+8);
+    ctx.globalAlpha=Math.min(1,a*1.4);ctx.fillStyle=P.nightink;
+    for(let i=0;i<24;i++){ctx.fillRect((i*53)%W,(i*37)%120+6,1,1);}
+    ctx.fillText('NIGHT '+G.anim.day,W/2,H/2-14);
+    ctx.fillStyle=P.i;if(reduce||Math.floor(t/250)%2)ctx.fillText('ATTACKERS ARE MOVING',W/2,H/2+4);
+    ctx.globalAlpha=1;
+  }
+}
+function drawNode(n,t){
+  const st=shown(n),x0=Math.round(n.x-10),y0=Math.round(n.y-10);
+  let col=st==='S'?P.s:st==='E'?P.e:st==='I'?P.i:P.r;
+  if(n.offline&&st!=='I'&&n.iso===0)col=P.off;
+  const bc=n.iso>0?P.iso:col,flash=st==='I'&&(reduce||Math.floor(t/350)%2===0),hov=G.hover===n.id;
+  ctx.fillStyle=flash?P.i:P.tile2;ctx.fillRect(x0,y0-(hov?1:0),20,20);
+  outline(x0,y0-(hov?1:0),20,20,bc);if(n.iso>0||hov)outline(x0+1,y0+1-(hov?1:0),18,18,bc);
+  bitmap(ctx,SPR[n.sector],x0+2,y0+2-(hov?1:0),2,flash?P.tile2:bc);
+  const g=n.iso>0?'L':st==='I'?'!':st==='E'?'?':st==='R'?'v':(n.offline?'z':null);
+  if(g){ctx.fillStyle=bc;ctx.fillRect(x0+14,y0-4,7,9);bitmap(ctx,GLY[g],x0+16,y0-2,1,P.tile2);}
+  if(G.sel===n.id&&(reduce||Math.floor(t/400)%2===0))brackets(x0-4,y0-4,28,28,P.ink);
+}
+
+/* chart */
+function drawChart(){
+  cc.setTransform(SC,0,0,SC,0,0);
+  cc.fillStyle=P.tile;cc.fillRect(0,0,CW,CH);
+  cc.fillStyle=P.grid;for(let i=0;i<=4;i++)cc.fillRect(4,Math.round(4+i*(CH-8)/4),CW-8,1);
+  const truth=G.ended;
+  const series=truth?[['S',P.s,'Vulnerable'],['E',P.e,'Hidden + found intruders'],['I',P.i,'Compromised'],['R',P.r,'Secured']]:[['S',P.s,'Looks vulnerable'],['E',P.e,'Intruders found'],['I',P.i,'Compromised'],['R',P.r,'Looks secured']];
+  const X=d=>Math.round(4+d*(CW-8)/DAYS),Y=v=>Math.round(CH-4-v*(CH-8)/N);
+  for(const [k,col] of series){
+    cc.fillStyle=col;
+    for(let d=0;d<G.hist.length;d++){
+      const get=h=>(truth?h.t:h.v)[k],y=Y(get(G.hist[d])),x=X(d),x2=d+1<G.hist.length?X(d+1):x+1;
+      cc.fillRect(x,y-1,Math.max(1,x2-x),2);
+      if(d+1<G.hist.length){const y2=Y(get(G.hist[d+1]));if(y2!==y)cc.fillRect(x2-1,Math.min(y,y2)-1,2,Math.abs(y2-y)+2);}
+    }
+  }
+  $('chartTitle').textContent=truth?'OUTBREAK CURVE: THE TRUTH':'OUTBREAK CURVE: WHAT YOU CAN SEE';
+  $('chartKey').innerHTML=series.map(([k,col,l])=>`<span><b style="background:${col}"></b>${l}</span>`).join('');
+}
+function drawSel(){
+  spx.clearRect(0,0,40,40);const n=G&&selNode();
+  spx.fillStyle=P.tile2;spx.fillRect(0,0,40,40);
+  if(!n){bitmap(spx,["..####..",".#....#.","......#.","....##..","...#....","........","...#....","........"],4,4,4,P.off);return;}
+  const st=shown(n),col=n.iso>0?P.iso:st==='S'?(n.offline?P.off:P.s):st==='E'?P.e:st==='I'?P.i:P.r;
+  bitmap(spx,SPR[n.sector],4,4,4,col);
+}
+
+/* UI */
+const STATUS={S:'Vulnerable (S)',E:'Intruder found (E)',I:'Compromised (I)',R:'Secured (R)'};
+function pct(el,v){$(el).style.width=Math.max(0,Math.min(100,v))+'%';}
+function updateUI(){
+  const c=G.hist[G.hist.length-1];
+  $('hDay').textContent=`${G.day}/${DAYS}`;pct('barDay',G.day/DAYS*100);
+  $('hBudget').textContent='$'+G.budget;pct('barBudget',G.budget/80*100);
+  $('hUp').textContent=Math.round(c.online/N*100)+'%';pct('barUp',c.online/N*100);
+  $('hPhish').textContent=`${G.phishCaught}/${G.phishSeen}`;pct('barPhish',G.phishSeen?G.phishCaught/G.phishSeen*100:0);
+  const n=selNode();
+  if(!n)$('selInfo').innerHTML='<div class="nm">No system selected</div><div class="meta">Click or tap a system on the map.</div>';
+  else{
+    const st=shown(n),cls={S:'',E:'c-e',I:'c-i',R:'c-r'}[st],deps=SECT[n.sector].deps.map(d=>SECT[d].label.toLowerCase()).join(' and ');
+    let extra='';
+    if(n.iso>0)extra+=`<div class="st" style="color:var(--iso)">Isolated, ${n.iso} day${n.iso>1?'s':''} left</div>`;
+    if(n.cascade)extra+=`<div class="st c-m">Offline: a sector it needs is down</div>`;
+    $('selInfo').innerHTML=`<div class="nm">${n.name}</div><div class="meta">${SECT[n.sector].label.charAt(0)+SECT[n.sector].label.slice(1).toLowerCase()}${deps?', needs '+deps:''}</div><div class="st ${cls}">${STATUS[st]}</div>${extra}`;
+  }
+  drawSel();
+  $('bPatch').disabled=!canPatch(n);$('bRestore').disabled=!canRestore(n);$('bScan').disabled=!canScan(n);$('bIso').disabled=!canIso(n);
+  $('bRestore').innerHTML=`<span class="k">R</span>ESTORE $${restoreCost()}<span class="c">Rebuild a hacked system</span>`;
+  $('upg').innerHTML=Object.entries(UPG).map(([k,u])=>`<button data-u="${k}" class="${G.upg[k]?'own':''}" ${G.upg[k]||G.budget<u.cost||!ready()?'disabled':''}><span>${u.label}<span class="d">${u.desc}</span></span><span>${G.upg[k]?'OWNED':'$'+u.cost}</span></button>`).join('');
+  $('mBeta').textContent=`${beta(false).toFixed(3)} inside, ${beta(true).toFixed(3)} across`;
+  $('mGamma').textContent=gamma().toFixed(2)+' per day';
+  const r=r0();$('mR0').innerHTML=`<span class="${r>=1?'hot':'cool'}">${r.toFixed(1)}</span>`;
+  $('bNext').disabled=G.ended||busy;
+  $('bNext').innerHTML=G.ended?'SHIFT COMPLETE':busy?'NIGHT FALLS…':`END DAY ${G.day+1}<small>Press N when you’re done</small>`;
+  $('log').innerHTML=G.log.map(l=>`<li class="c-${l.cls}">${l.msg}</li>`).join('');
+}
+$('upg').addEventListener('click',e=>{const b=e.target.closest('button[data-u]');if(b)buy(b.dataset.u);});
+$('bPatch').onclick=()=>act('patch');$('bRestore').onclick=()=>act('restore');$('bScan').onclick=()=>act('scan');$('bIso').onclick=()=>act('iso');
+$('bNext').onclick=endDay;
+$('bSound').onclick=()=>{soundOn=!soundOn;$('bSound').textContent=soundOn?'SOUND ON':'SOUND OFF';$('bSound').setAttribute('aria-pressed',soundOn);if(soundOn)SFX.select();};
+$('bHelp').onclick=()=>{if(!modalOpen)showBriefing(true);};
+function nodeAt(e){const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;for(const n of G.nodes)if(Math.abs(x-n.x)<=12&&Math.abs(y-n.y)<=12)return n.id;return null;}
+cv.addEventListener('click',e=>{const h=nodeAt(e);G.sel=h;if(h!=null)SFX.select();updateUI();});
+cv.addEventListener('mousemove',e=>{G.hover=nodeAt(e);cv.style.cursor=G.hover!=null?'pointer':'default';});
+cv.addEventListener('mouseleave',()=>{G.hover=null;});
+document.addEventListener('keydown',e=>{
+  if(modalOpen){
+    if(e.key==='Enter'){const b=$('mBtn');if(b){e.preventDefault();b.click();}}
+    else if(['1','2','3'].includes(e.key)){const b=$('win').querySelector(`.report[data-i="${+e.key-1}"]`);if(b&&!b.disabled)b.click();}
+    return;
+  }
+  const k=e.key.toLowerCase();
+  if(k==='p')act('patch');else if(k==='r')act('restore');else if(k==='s')act('scan');else if(k==='i')act('iso');
+  else if(k==='n'||(k===' '&&e.target===document.body)){e.preventDefault();endDay();}
+});
+
+/* modals */
+function openModal(html,wide){const w=$('win');w.className='win'+(wide?' wide':'');w.innerHTML=html;$('modal').classList.add('open');modalOpen=true;w.scrollTop=0;updateUI();return w;}
+function closeModal(){$('modal').classList.remove('open');modalOpen=false;}
+function bindContinue(onDone){const b=$('mBtn');b.focus();b.onclick=()=>{closeModal();onDone&&onDone();runQueue();};}
+function showBriefing(again){
+  openModal(`<div class="winbar"><span>RIVERTON CITY · SECURITY OPS</span><span>${again?'HELP':'SHIFT 1'}</span></div><div class="winbody">
+  <div class="logo">GRID<br>DEFENDER</div>
+  <p class="lead center">You run cybersecurity for the city of Riverton.</p>
+  <p>Six sectors keep the city alive: power, water, hospitals, telecom, banking and transit. Attackers are already probing your network. Keep the city running for 60 days.</p>
+  <p>Every system moves through four states, just like people in a disease outbreak:</p>
+  <div class="states">
+    <div style="border-color:var(--s)"><b>S</b>Vulnerable and waiting to be hit</div>
+    <div style="border-color:var(--e);color:var(--e)"><b>E</b>Intruder hiding inside, invisible to you</div>
+    <div style="border-color:var(--i);color:var(--i)"><b>I</b>Compromised and spreading</div>
+    <div style="border-color:var(--r);color:var(--r)"><b>R</b>Secured</div>
+  </div>
+  <p>Each day, select systems and spend your budget on Patch, Restore, Scan or Isolate. Some days, staff will forward suspicious emails to you. Spot the phishing before someone clicks. When you’re ready, end the day and see what the attackers do overnight.</p>
+  <p class="c-m">Watch out for dependencies. If power goes down, everything that needs electricity goes dark too. Keys: P, R, S, I to act, N to end the day.</p>
+  <div class="actions"><button class="primary" id="mBtn">${again?'BACK TO THE GAME':'START SHIFT'}</button></div></div>`);
+  bindContinue(()=>SFX.good());
+}
+function showAlert(ev){
+  SFX.alarm();
+  openModal(`<div class="winbar"><span>!! INCIDENT ALERT !!</span><span>DAY ${G.day}</span></div><div class="winbody">
+  <span class="tag c-i">PRIORITY ONE</span><h3>${ev.title}</h3><p>${ev.text}</p><p class="c-x">${ev.lesson}</p>
+  <div class="actions"><button class="primary" id="mBtn">CONTINUE</button></div></div>`);
+  bindContinue();
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function phishRound(r,tot){
+  const ph=PHISH[G.phishOrder[G.phishPtr++%PHISH.length]];
+  const legit=shuffle(LEGIT.slice()).slice(0,2);
+  const mails=shuffle([Object.assign({phish:true},ph),...legit.map(l=>Object.assign({phish:false},l))]);
+  SFX.mail();
+  const w=openModal(`<div class="winbar"><span>SECURITY INBOX</span><span>DAY ${G.day}${tot>1?` · ${r+1} OF ${tot}`:''}</span></div><div class="winbody">
+  <h3>Which email is phishing?</h3>
+  <p class="lead">Staff forwarded these messages to the security team. One of them is an attack. Report it before anyone clicks. Check the sender’s real address, where links go, and what the email wants you to do.</p>
+  <div class="mails">${mails.map((m,i)=>`<article class="mail" data-i="${i}">
+    <div><div class="who">${esc(m.name)}</div><div class="addr">&lt;${esc(m.addr)}&gt;</div></div>
+    <div class="subj">${esc(m.subj)}</div>
+    <p>${esc(m.body)}</p>
+    ${m.link?`<div class="chip">Link goes to: ${esc(m.link)}</div>`:''}
+    ${m.att?`<div class="chip">Attachment: ${esc(m.att)}</div>`:''}
+    <div class="stamp"></div>
+    <button class="report" data-i="${i}">REPORT AS PHISHING<span class="c">Key ${i+1}</span></button>
+  </article>`).join('')}</div>
+  <div id="phResult"></div></div>`,true);
+  w.querySelectorAll('.report').forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+  function choose(i){
+    G.phishSeen++;
+    w.querySelectorAll('.report').forEach(b=>b.disabled=true);
+    w.querySelectorAll('.mail').forEach((a,j)=>{a.classList.add(mails[j].phish?'is-phish':'is-legit');a.querySelector('.stamp').textContent=mails[j].phish?'PHISHING':'LEGITIMATE';if(j===i)a.classList.add('picked');});
+    const right=mails[i].phish;let head,cls;
+    if(right){G.phishCaught++;G.budget+=2;SFX.good();cls='good';head=`<span class="c-r">Caught it! +$2 reward.</span> No one clicked, so no foothold.`;addLog(`Phishing caught: “${ph.subj}”`,'r');}
+    else{const out=plantFoothold(ph.bait);SFX.bad();cls='bad';
+      head=out==='blocked'?`<span class="c-i">Missed.</span> Someone clicked and typed their password, but multi-factor login stopped the attacker.`:`<span class="c-i">Missed.</span> Someone clicked it. An attacker now has a hidden foothold somewhere in the city.`;
+      addLog(`Phishing missed: “${ph.subj}”`,'i');}
+    $('phResult').innerHTML=`<div class="result ${cls}"><div>${head}</div><div style="margin-top:8px">Red flags in the phishing email:</div><ul>${ph.flags.map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>
+    <div class="actions"><button class="primary" id="mBtn">CONTINUE</button></div>`;
+    updateUI();bindContinue();
+    $('phResult').scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
+  }
+}
+function endGame(){
+  G.ended=true;
+  const up=G.uptimeSum/(DAYS*N),grade=up>=.85?'A':up>=.7?'B':up>=.55?'C':up>=.4?'D':'F';
+  const sp=G.nodes.filter(n=>n.ever),obsR=sp.length?(sp.reduce((a,n)=>a+n.caused,0)/sp.length).toFixed(1):'0.0';
+  const msg={A:'The lights stayed on. Riverton barely noticed.',B:'A few rough days, but the city held.',C:'The city limped through. Some services went dark.',D:'Blackouts and outages hit hard.',F:'The attackers ran the city this month.'}[grade];
+  const gcol=grade<='B'?'var(--r)':grade==='C'?'var(--e)':'var(--i)';
+  updateUI();drawChart();SFX[grade<='B'?'good':'bad']();
+  openModal(`<div class="winbar"><span>END OF SHIFT REPORT</span><span>DAY 60</span></div><div class="winbody">
+  <div class="big" style="color:${gcol}">${grade}</div>
+  <p class="center">${msg}</p>
+  <div class="stats">
+    <div>Average uptime<b>${Math.round(up*100)}%</b></div>
+    <div>Peak compromised<b>${G.peakI}/${N}</b></div>
+    <div>Observed R₀<b>${obsR}</b></div>
+    <div>Phishing caught<b>${G.phishCaught}/${G.phishSeen}</b></div>
+    <div>Hidden footholds<b>${G.hiddenSeeds}</b></div>
+    <div>MFA saves<b>${G.mfaBlocks}</b></div>
+  </div>
+  <p>You just played an SEIR model. β, the spread rate, fell when you segmented and isolated systems. γ, the recovery rate, rose with monitoring and restores. Outbreaks die out when R₀ = β·k̄/γ drops below 1. Patching works like vaccination: secure enough systems and the attack runs out of paths.</p>
+  <p>Critical infrastructure is a web of dependencies. When one sector failed, others went dark without ever being hacked. Real defenders call these cascading failures.</p>
+  ${G.wasted?`<p class="c-e">You patched ${G.wasted} system${G.wasted>1?'s':''} that attackers had already entered. Patching protects healthy systems. It doesn’t remove an intruder who is already inside.</p>`:''}
+  <p class="c-x">Most outbreaks in this game started with one person clicking one email. Catching a phishing message stops an outbreak before it begins. The same habits protect you: check the sender’s real address, look at where links go, slow down when an email feels urgent or secret, turn on multi-factor login, and report anything suspicious.</p>
+  <p>Talk about it: Which of these defenses could you use on your own phone or laptop this week? And where did the game feel realistic, and where not? The chart now shows the hidden intruders you never saw.</p>
+  <div class="actions"><button class="primary" id="mBtn">PLAY AGAIN</button></div></div>`);
+  bindContinue(()=>{newGame();updateUI();drawChart();Q.push(()=>showBriefing(false));});
+}
+
+/* loop */
+function loop(t){
+  if(G.anim){const p=(t-G.anim.t0)/G.anim.dur;if(p>=.5&&!G.anim.ticked){G.anim.ticked=true;tick();}if(p>=1){G.anim=null;updateUI();runQueue();}}
+  draw(t);requestAnimationFrame(loop);
+}
+newGame();updateUI();drawChart();showBriefing(false);
+if(document.fonts&&document.fonts.load)Promise.all([document.fonts.load("8px 'Press Start 2P'"),document.fonts.load("20px 'VT323'")]).then(()=>{drawChart();}).catch(()=>{});
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
